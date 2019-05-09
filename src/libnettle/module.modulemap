@@ -1,0 +1,11 @@
+
+module CNettle {
+    umbrella header "nettle/nettle.h"
+    link "nettle"
+
+    module Hogweed {
+        umbrella header "hogweed/hogweed.h"
+	link "hogweed"
+	link "gmp"
+    }
+}
