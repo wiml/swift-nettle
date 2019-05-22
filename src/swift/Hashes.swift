@@ -242,7 +242,6 @@ public class Hash : ManagedBuffer<UnsafePointer<nettle_hash>, UInt8> & HashProto
         }
         var result = Array<String>()
         while let instance = tbl.pointee {
-            print("reading instance \(instance) at \(tbl)")
             result.append(String(cString: instance.pointee.name, encoding: .ascii)!)
             tbl += 1
         }
