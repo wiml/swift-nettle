@@ -18,7 +18,7 @@ public final class DSASignature: Equatable {
 
     public static func == (lhs: DSASignature, rhs: DSASignature) -> Bool {
         return ( nettle_swift_mpz_cmp(&lhs.sig.r, &rhs.sig.r) == 0 &&
-                   nettle_swift_mpz_cmp(&lhs.sig.s, &rhs.sig.s) == 0 )
+                 nettle_swift_mpz_cmp(&lhs.sig.s, &rhs.sig.s) == 0 )
     }
 
     public init?(packed: ContiguousArray<UInt8>) {
@@ -37,8 +37,6 @@ public final class DSASignature: Equatable {
 
     public init?(der: UnsafeBufferPointer<UInt8>, max_bits: CUnsignedInt? = nil) {
         let limit = max_bits ?? 0
-        let prealloc = (limit > 0) ? limit : CUnsignedInt(der.count / 4)
-        var parsed = dsa_signature()
         var cursor = asn1_der_iterator()
         guard nettle_asn1_der_iterator_first(&cursor, der.count, der.baseAddress) == ASN1_ITERATOR_CONSTRUCTED else {
             return nil
@@ -46,15 +44,22 @@ public final class DSASignature: Equatable {
         guard nettle_asn1_der_decode_constructed_last(&cursor) == ASN1_ITERATOR_PRIMITIVE else {
             return nil
         }
-        nettle_swift_mpz_init_prealloc(&parsed.r, prealloc)
-        guard nettle_asn1_der_get_bignum(&cursor, &parsed.r, limit) == Int32(ASN1_ITERATOR_PRIMITIVE.rawValue) else {
-            nettle_swift_mpz_clear(&parsed.r)
+        var parsed = dsa_signature()
+        nettle_dsa_signature_init(&parsed)
+        guard nettle_asn1_der_get_bignum(&cursor, &parsed.r, limit) > 0 else {
+            nettle_dsa_signature_clear(&parsed)
             return nil
         }
-        nettle_swift_mpz_init_prealloc(&parsed.s, prealloc)
-        guard nettle_asn1_der_get_bignum(&cursor, &parsed.s, limit) == Int32(ASN1_ITERATOR_END.rawValue) else {
-            nettle_swift_mpz_clear(&parsed.s)
-            nettle_swift_mpz_clear(&parsed.r)
+        guard nettle_asn1_der_iterator_next(&cursor) == ASN1_ITERATOR_PRIMITIVE else {
+            nettle_dsa_signature_clear(&parsed)
+            return nil
+        }
+        guard nettle_asn1_der_get_bignum(&cursor, &parsed.s, limit) > 0 else {
+            nettle_dsa_signature_clear(&parsed)
+            return nil
+        }
+        guard nettle_asn1_der_iterator_next(&cursor) == ASN1_ITERATOR_END else {
+            nettle_dsa_signature_clear(&parsed)
             return nil
         }
         self.sig = parsed // takes ownership of pointers within buf
@@ -83,19 +88,19 @@ public final class DSASignature: Equatable {
             nettle_mpz_sizeinbase_256_s($0)
         }
 
-        let r_der_hdr_size = 1 + derLength(forContentLength: r_size_octets)
-        let s_der_hdr_size = 1 + derLength(forContentLength: s_size_octets)
+        let r_der_hdr_size = 1 + derLengthLength(forContentLength: r_size_octets)
+        let s_der_hdr_size = 1 + derLengthLength(forContentLength: s_size_octets)
         let sequence_contents_size = r_der_hdr_size + r_size_octets + s_der_hdr_size + s_size_octets
-        let total_der_size = 1 + derLength(forContentLength: sequence_contents_size)
+        let total_der_size = 1 + derLengthLength(forContentLength: sequence_contents_size) + sequence_contents_size
 
         var result = ContiguousArray<UInt8>(repeating: 0x00, count: total_der_size)
 
         result[0] = 0x30 /* SEQUENCE */
         let r_pos = derPutLength(&result, 1, sequence_contents_size)
-        result[r_pos] = 0x12 /* INTEGER */
+        result[r_pos] = 0x02 /* INTEGER */
         let r_content_pos = derPutLength(&result, r_pos + 1, r_size_octets)
         let s_pos = r_content_pos + r_size_octets
-        result[s_pos] = 0x12 /* INTEGER */
+        result[s_pos] = 0x02 /* INTEGER */
         let s_content_pos = derPutLength(&result, s_pos + 1, s_size_octets)
         assert(s_content_pos + s_size_octets == total_der_size)
 

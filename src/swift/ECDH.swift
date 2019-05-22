@@ -9,6 +9,18 @@ public enum ECCPrimeCurve {
     case secp384r1
     case secp521r1
 
+    public var bit_size: Int {
+        get {
+            switch self {
+            case .secp192r1: return 192
+            case .secp224r1: return 224
+            case .secp256r1: return 256
+            case .secp384r1: return 384
+            case .secp521r1: return 521
+            }
+        }
+    }
+
     fileprivate var nettle_vtable: OpaquePointer {
         get {
             switch self {
@@ -82,6 +94,10 @@ public final class ECCPrimePublicKey {
 
     fileprivate init(_ point: ecc_point) {
         self.point = point
+    }
+
+    public convenience init?(curve: ECCPrimeCurve, sec1: UnsafeBufferPointer<UInt8>) {
+        self.init(curve: curve.nettle_vtable, sec1: sec1)
     }
 
     internal convenience init?(curve: OpaquePointer, sec1: UnsafeBufferPointer<UInt8>) {
@@ -234,6 +250,24 @@ public final class ECCPrimePrivateKey {
         nettle_ecc_scalar_clear(&buf)
     }
 
+    /// Create a private key from the representation of its secret scalar.
+    ///
+    /// The scalar should be in unsigned, big-endian, base-256 format, without any
+    /// header.
+    public convenience init?(curve: ECCPrimeCurve, scalar: UnsafeBufferPointer<UInt8>) {
+        var z = mpz_t()
+        nettle_mpz_init_set_str_256_u(&z, scalar.count, scalar.baseAddress)
+        var buf = ecc_scalar()
+        nettle_ecc_scalar_init(&buf, curve.nettle_vtable)
+        let res = nettle_ecc_scalar_set(&buf, &z)
+        nettle_swift_mpz_clear(&z)
+        guard res > 0 else {
+            nettle_ecc_scalar_clear(&buf)
+            return nil
+        }
+        self.init(buf)
+    }
+
     /// Generate a key pair with a specified elliptic curve.
     public static func generate(_ curve: ECCPrimeCurve, entropy: getentropy_func? = nil) -> (ECCPrimePublicKey, ECCPrimePrivateKey) {
         return self.generate(curve: curve.nettle_vtable, entropy: entropy)
@@ -250,6 +284,39 @@ public final class ECCPrimePrivateKey {
                                           rng_ctxt, rng_cb)
         }
         return (ECCPrimePublicKey(point), ECCPrimePrivateKey(scalar))
+    }
+
+    /// Compute the public key corresponding to this secret key.
+    /// This involves an EC multiplication; if the public key is
+    /// needed often, it's a good idea to compute it once and cache it.
+    public func compute_public_key() -> ECCPrimePublicKey {
+        var buf = ecc_point()
+        nettle_ecc_point_init(&buf, scalar.ecc)
+        withUnsafePointer(to: scalar) {
+            nettle_ecc_point_mul_g(&buf, $0)
+        }
+        return ECCPrimePublicKey(buf)
+    }
+
+    /// Returns this private key as an octet-string.
+    /// The result corresponds to the field element converted to an octet
+    /// string as described in SEC.1 section 2.3.5.
+    /// The result is always a fixed length for a given curve.
+    public func toSec1() -> ContiguousArray<UInt8> {
+        let bits = curve_size
+        let octets = Int((bits + 7) / 8)
+        var integer = mpz_t()
+        nettle_swift_mpz_init_prealloc(&integer, bits)
+        withUnsafePointer(to: scalar) {
+            nettle_ecc_scalar_get($0, &integer)
+        }
+        var result = ContiguousArray<UInt8>(repeating: 0x00, count: octets)
+        result.withUnsafeMutableBufferPointer {
+            (outbuf) -> Void in
+            nettle_mpz_get_str_256(outbuf.count, outbuf.baseAddress, &integer)
+        }
+        nettle_swift_mpz_clear(&integer)
+        return result
     }
 
     /// Produce an ECDSA signature of a value.

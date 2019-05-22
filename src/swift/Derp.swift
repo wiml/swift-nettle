@@ -1,6 +1,9 @@
-// A few convenient DER primitives
+// A few convenient DER packing primitives
 
-internal func derLength(forContentLength sz: Int) -> Int {
+/// Returns the length (in octets) of the DER length-field for
+/// a value of the given length. Does not include the tag, nor the
+/// value octets themselves.
+internal func derLengthLength(forContentLength sz: Int) -> Int {
     if sz < 0x80 {
         return 1
     } else if sz < 0x100 {
@@ -14,6 +17,8 @@ internal func derLength(forContentLength sz: Int) -> Int {
     }
 }
 
+/// Pack the DER length field into the buffer at the specified location.
+/// Returns the position after the length field.
 internal func derPutLength(_ buf: inout ContiguousArray<UInt8>, _ pos: Int, _ sz: Int) -> Int {
     if sz < 0x80 {
         buf[pos] = UInt8(sz)
