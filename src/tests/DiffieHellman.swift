@@ -1,6 +1,6 @@
 import XCTest
 import Foundation
-@testable import Nettle
+import Nettle
 
 public class DiffieHellmanTests : XCTestCase {
 
@@ -24,7 +24,7 @@ public class DiffieHellmanTests : XCTestCase {
         XCTAssertEqual(Qb.curve_size, 256)
         XCTAssertEqual(Qa.curve, .secp384r1)
         XCTAssertEqual(Qb.curve, .secp256r1)
-        
+
         let secret1 = rawDiffieHellmanAgreement(Qa, db)
         XCTAssertNil(secret1)
         let secret2 = rawDiffieHellmanAgreement(Qb, da)
@@ -37,7 +37,7 @@ public class DiffieHellmanTests : XCTestCase {
 
         XCTAssertEqual(Qb.curve_size, 521)
         XCTAssertEqual(Qb.curve, .secp521r1)
-        
+
         let secret1 = rawDiffieHellmanAgreement(Qa, db)!
         XCTAssertEqual(secret1.count, (521 + 7) / 8)
         let secret2 = rawDiffieHellmanAgreement(Qb, da)!
@@ -45,8 +45,9 @@ public class DiffieHellmanTests : XCTestCase {
     }
 
     static public let allTests = [
-      ("randomKeyAgreement", randomKeyAgreement),
-      ("randomKeyDisagreement", randomKeyDisagreement),
-      ("generateSimilar", generateSimilar),
+        ("randomKeyAgreement", randomKeyAgreement),
+        ("randomKeyDisagreement", randomKeyDisagreement),
+        ("generateSimilar", generateSimilar),
+        ("knownKeyAgreement", knownKeyAgreement),
     ]
 }

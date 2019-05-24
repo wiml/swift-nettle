@@ -1,5 +1,5 @@
 import XCTest
-@testable import Nettle
+import Nettle
 
 public class ECDHTests : XCTestCase {
 
@@ -94,10 +94,10 @@ public class ECDHTests : XCTestCase {
     }
 
     static public let allTests = [
-      ("testLoadSavePubKey", testLoadSavePubKey),
-      ("testLoadSavePrivKey", testLoadSavePrivKey),
-      ("testLoadSaveSig", testLoadSaveSig),
-      ("testKnownSignature", testKnownSignature),
-      ("testSignVerify", testSignVerify),
+        ("testLoadSavePubKey", testLoadSavePubKey),
+        ("testLoadSavePrivKey", testLoadSavePrivKey),
+        ("testLoadSaveSig", testLoadSaveSig),
+        ("testKnownSignature", testKnownSignature),
+        ("testSignVerify", testSignVerify),
     ]
 }

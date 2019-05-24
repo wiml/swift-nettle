@@ -21,9 +21,5 @@ let package = Package(
           name: "NettleTests",
           dependencies: ["Nettle"],
           path: "src/tests"),
-        .target(
-          name: "Demo",
-          dependencies: ["Nettle"],
-          path: "src/demo"),
     ]
 )

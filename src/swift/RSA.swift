@@ -9,7 +9,7 @@ fileprivate typealias progress_cb = @convention(c) (UnsafeMutableRawPointer?, CI
 
 // TODO: Submit doc patch to nettle to explain limit / max_bits behavior
 
-public final class RSAPublicKey {
+public class RSAPublicKey {
     fileprivate var state: rsa_public_key
 
     public var output_size : Int {
@@ -108,7 +108,7 @@ public final class RSAPublicKey {
     }
 }
 
-public final class RSAPrivateKey {
+public class RSAPrivateKey {
     public let public_key: RSAPublicKey
     private var state: rsa_private_key
     public var entropy_source: getentropy_func? = nil

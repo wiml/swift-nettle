@@ -1,5 +1,5 @@
 import CNettle
-import Glibc
+import Foundation
 
 /// The type of Swift functions/closures which can be supplied to provide
 /// entropy to key generation, signing, etc. operations which need it.
@@ -21,16 +21,8 @@ fileprivate func call_getentropy(_ ctxt: UnsafeMutableRawPointer?, _ count: Int,
 /// In the particular case of using the default, builtin entropy source,
 /// just use this with no context pointer
 fileprivate func default_getentropy(_: UnsafeMutableRawPointer?, _ count: Int, _ buf: UnsafeMutablePointer<UInt8>?) -> () {
-    guard getentropy(buf, count) == 0 else {
-        fatalError("Random number generator failure")
-    }
+    system_entropy_source(UnsafeMutableBufferPointer(start: buf, count: count))
 }
-
-internal func default_entropy_source(_ buf: UnsafeMutableBufferPointer<UInt8>) -> () {
-    guard getentropy(buf.baseAddress, buf.count) == 0 else {
-        fatalError("Random number generator failure")
-    }
-}    
 
 internal typealias getentropy_cb = @convention(c) (UnsafeMutableRawPointer?, Int, UnsafeMutablePointer<UInt8>?) -> Void
 
@@ -75,8 +67,11 @@ internal func i2os(_ v: UnsafePointer<mpz_t>, width: Int) -> ContiguousArray<UIn
     return result
 }
 
+/// The version of libnettle against which this library was compiled
 public let libnettle_build_version = ( CNettle.NETTLE_VERSION_MAJOR, CNettle.NETTLE_VERSION_MINOR )
 
+/// The version of libnettle we're using; may differ from libnettle_build_version
+/// if nettle is dynamically linked
 public let libnettle_run_version = ( nettle_version_major(), nettle_version_minor() )
 
 internal func withNettleBuffer(_ writer: (UnsafeMutablePointer<nettle_buffer>) -> Bool) -> ContiguousArray<UInt8>? {
@@ -111,3 +106,28 @@ internal func withEntropyCallback<T>(_ entropy_source: getentropy_func?,
     }
 }
 
+#if canImport(Glibc)
+
+import Glibc
+import ErrNo
+
+fileprivate func system_entropy_source(_ buf: UnsafeMutableBufferPointer<UInt8>) -> () {
+
+    // The getentropy() call is limited to 256 bytes at a time (since it's
+    // calling into the kernel RNG). Break up larger requests into multiple
+    // small requests.
+    let linux_getentropy_max = 256
+
+    var pos = 0
+    while pos < buf.count {
+        let request_size = min(buf.count - pos, linux_getentropy_max)
+
+        guard Glibc.getentropy(buf.baseAddress! + pos, request_size) == 0 else {
+            fatalError("Random number generator failure (\(ErrNo.lastError) while requesting \(buf.count) bytes from \"getentropy\")")
+        }
+
+        pos += request_size
+    }
+}
+
+#endif
