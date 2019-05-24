@@ -1,5 +1,7 @@
 // A few convenient DER packing primitives
 
+import CNettle.Hogweed
+
 /// Returns the length (in octets) of the DER length-field for
 /// a value of the given length. Does not include the tag, nor the
 /// value octets themselves.
@@ -41,4 +43,23 @@ internal func derPutLength(_ buf: inout ContiguousArray<UInt8>, _ pos: Int, _ sz
     } else {
         fatalError("oversized DER")
     }
+}
+
+internal func derIntegerLength(_ n: mpz_srcptr) -> Int {
+    let content_size = nettle_mpz_sizeinbase_256_s(n)
+    return 1 + derLengthLength(forContentLength: content_size) + content_size
+}
+
+
+internal func derPutInteger(_ buf: inout ContiguousArray<UInt8>, _ pos: Int, _ n: mpz_srcptr) -> Int {
+    buf[pos] = 0x02 /* INTEGER */
+
+    let content_size = nettle_mpz_sizeinbase_256_s(n)
+    let content_pos = derPutLength(&buf, pos+1, content_size)
+    buf.withUnsafeMutableBufferPointer {
+        (outbuf) -> Void in
+        nettle_mpz_get_str_256(content_size, outbuf.baseAddress! + content_pos, n)
+    }
+
+    return content_pos + content_size
 }

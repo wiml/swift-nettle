@@ -7,6 +7,9 @@ let package = Package(
     products: [
         .library(name: "Nettle", targets: ["Nettle"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/Ponyboy47/ErrNo", .upToNextMinor(from: "0.5.2"))
+    ],
     targets: [
         .systemLibrary(
 	  name: "CNettle",
@@ -15,7 +18,10 @@ let package = Package(
           providers: [.apt(["nettle-dev"])]),
 	.target(
           name: "Nettle",
-          dependencies: ["CNettle"],
+          dependencies: [
+            "CNettle",
+            "ErrNo"
+          ],
           path: "src/swift"),
         .testTarget(
           name: "NettleTests",

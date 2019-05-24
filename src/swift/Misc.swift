@@ -106,6 +106,50 @@ internal func withEntropyCallback<T>(_ entropy_source: getentropy_func?,
     }
 }
 
+public func getRandomData(_ buf: UnsafeMutableBufferPointer<UInt8>, from entropy_source: getentropy_func?) {
+    if let csrng = entropy_source {
+        csrng(buf)
+    } else {
+        system_entropy_source(buf)
+    }
+}
+
+internal extension ContiguousBytes {
+
+    @inlinable
+    func withUnsafeBytesAsCharBuffer<R>(_ body: (UnsafeBufferPointer<UInt8>) -> R) -> R {
+        return self.withUnsafeBytes {
+            return body($0.bindMemory(to: UInt8.self))
+        }
+    }
+
+}
+
+internal func withMpz<T, B: ContiguousBytes>(_ buf: B, _ cb: (mpz_srcptr) -> T) -> T {
+    var m = mpz_t()
+    buf.withUnsafeBytes {
+        let bufmem = $0.bindMemory(to: UInt8.self)
+        nettle_mpz_init_set_str_256_u(&m,  bufmem.count, bufmem.baseAddress)
+    }
+    defer {
+        nettle_swift_mpz_clear(&m)
+    }
+    return cb(&m)
+}
+
+internal func withMpzBuffer(_ cb: (mpz_ptr) -> Bool) -> ContiguousArray<UInt8>? {
+    var m = mpz_t()
+    nettle_swift_mpz_init_prealloc(&m, 0)
+    defer {
+        nettle_swift_mpz_clear(&m)
+    }
+    if cb(&m) {
+        return i2os(&m)
+    } else {
+        return nil
+    }
+}
+
 #if canImport(Glibc)
 
 import Glibc

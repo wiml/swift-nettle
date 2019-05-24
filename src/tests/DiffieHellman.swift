@@ -44,6 +44,24 @@ public class DiffieHellmanTests : XCTestCase {
         XCTAssertEqual(secret1, secret2)
     }
 
+    func knownKeyAgreement() {
+        let da = ec1_priv_bare.withUnsafeBufferPointer {
+            ECCPrimePrivateKey(curve: ec1_curve, scalar: $0)
+        }!
+        let Qa = da.compute_public_key()
+
+        let db = ec2_priv_bare.withUnsafeBufferPointer {
+            ECCPrimePrivateKey(curve: ec2_curve, scalar: $0)
+        }!
+        let Qb = db.compute_public_key()
+
+        let secret_a_b = rawDiffieHellmanAgreement(Qa, db)
+        XCTAssertEqual(secret_a_b, ec1_ec2_raw_shared)
+
+        let secret_b_a = rawDiffieHellmanAgreement(Qb, da)
+        XCTAssertEqual(secret_b_a, ec1_ec2_raw_shared)
+    }
+
     static public let allTests = [
         ("randomKeyAgreement", randomKeyAgreement),
         ("randomKeyDisagreement", randomKeyDisagreement),

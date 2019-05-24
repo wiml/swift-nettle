@@ -27,3 +27,7 @@ static inline int nettle_swift_mpz_odd_p(mpz_srcptr v)
 static inline int nettle_swift_mpz_cmp(mpz_srcptr l, mpz_srcptr r) {
   return mpz_cmp(l, r);
 }
+
+static inline int nettle_swift_mpz_sizeinbase_2(mpz_srcptr v) {
+  return mpz_sizeinbase(v, 2);
+}
