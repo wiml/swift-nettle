@@ -1,6 +1,6 @@
 import XCTest
 import Foundation
-@testable import Nettle
+import Nettle
 
 public class HashTests : XCTestCase {
 
@@ -19,6 +19,9 @@ public class HashTests : XCTestCase {
 
         let d2 = chc.digest()
         XCTAssertEqual(d2, expected)
+
+        XCTAssertEqual(hc.block_size, 64)
+        XCTAssertEqual(chc.block_size, 64)
     }
 
     func testSha256() {
@@ -36,6 +39,9 @@ public class HashTests : XCTestCase {
 
         let d2 = chc.digest()
         XCTAssertEqual(d2, expected)
+
+        XCTAssertEqual(hc.block_size, 64)
+        XCTAssertEqual(chc.block_size, 64)
     }
 
     func testSha384() {
@@ -53,6 +59,9 @@ public class HashTests : XCTestCase {
 
         let d2 = chc.digest()
         XCTAssertEqual(d2, expected)
+
+        XCTAssertEqual(hc.block_size, 128)
+        XCTAssertEqual(chc.block_size, 128)
     }
 
     /// Test that value-type hash contexts behave as values, and that
@@ -109,14 +118,17 @@ public class HashTests : XCTestCase {
         XCTAssertEqual(d3, [0x08, 0x7a, 0x24, 0xf3, 0xb3, 0x87, 0x16, 0x41, 0x1c, 0xd9, 0x5d, 0x3f, 0xeb, 0x57, 0x8a, 0x1b, 0x79, 0x9c, 0xf3, 0x35, 0x7a, 0x69, 0x94, 0x4e, 0xce, 0x0b, 0x42, 0x1c, 0x38, 0x1c, 0x36, 0x19])
     }
 
+    /// Test looking up hash functions by name
     func testByName() {
         XCTAssertTrue(Hash.names.count > 4)
         XCTAssertTrue(Hash.names.contains("sha256"))
 
         var h1 = Hash.named("sha256")
         XCTAssertEqual(h1?.name, "sha256")
+        XCTAssertEqual(h1?.block_size, 64)
         var h2 = Hash.named("sha3_256")
         XCTAssertEqual(h2?.name, "sha3_256")
+        XCTAssertEqual(h2?.block_size, 136) // r=1088 bits
         let h3 = Hash.named("grumblekins")
         XCTAssertNil(h3)
 
@@ -132,11 +144,11 @@ public class HashTests : XCTestCase {
 
     /// Not even a stub dynamic runtime on Linux, so we have to manually list the test cases
     static public let allTests = [
-      ("testSha1", testSha1),
-      ("testSha256", testSha256),
-      ("testSha384", testSha384),
-      ("testValClone", testValClone),
-      ("testRefClone", testRefClone),
-      ("testByName", testByName),
+        ("testSha1", testSha1),
+        ("testSha256", testSha256),
+        ("testSha384", testSha384),
+        ("testValClone", testValClone),
+        ("testRefClone", testRefClone),
+        ("testByName", testByName),
     ]
 }

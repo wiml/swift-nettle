@@ -10,7 +10,7 @@ public protocol HashProtocol {
     /// example) implementing HMAC.
     var block_size: Int { get }
 
-    /// A name of this hash function, e.g. "sha-256"
+    /// A name of this hash function, e.g. `sha256`
     var name: String { get }
 
     /// Add the contents of a buffer to the hash.
@@ -87,6 +87,7 @@ public struct SHA1 : HashProtocol {
     }
 }
 
+/// The SHA-256 hash function.
 public struct SHA256 : HashProtocol {
     internal var ctxt: sha256_ctx
 
@@ -108,6 +109,7 @@ public struct SHA256 : HashProtocol {
     }
 }
 
+/// The SHA-384 (or SHA-512/384) hash function.
 public struct SHA384 : HashProtocol {
     internal var ctxt: sha512_ctx // same context struct as sha512
 
@@ -130,6 +132,7 @@ public struct SHA384 : HashProtocol {
     }
 }
 
+/// The SHA-512 hash function.
 public struct SHA512 : HashProtocol {
     internal var ctxt: sha512_ctx
 
@@ -195,22 +198,22 @@ public class Hash : ManagedBuffer<UnsafePointer<nettle_hash>, UInt8> & HashProto
         }
     }
 
-    internal static func create(_ vtable: UnsafePointer<nettle_hash>) -> Hash {
+    private static func create(_ vtable: UnsafePointer<nettle_hash>) -> ManagedBuffer<UnsafePointer<nettle_hash>, UInt8> {
         let instance = self.create(
-          minimumCapacity: Int(vtable.pointee.context_size),
-          makingHeaderWith: { (_) -> (UnsafePointer<nettle_hash>) in return vtable })
+            minimumCapacity: Int(vtable.pointee.context_size),
+            makingHeaderWith: { (_) -> (UnsafePointer<nettle_hash>) in return vtable })
         instance.withUnsafeMutablePointerToElements {
             vtable.pointee.`init`($0)
         }
-        return unsafeDowncast(instance, to: Hash.self)
+        return instance
     }
 
-    /// Creates a copy of the current state of the hash function and returns it.
+    /// Create a copy of the current state of the hash function.
     public func clone() -> Self {
         let ctxt_size = Int(vtable.context_size)
         let clone = type(of: self).create(
-          minimumCapacity: ctxt_size,
-          makingHeaderWith: { (_) -> (UnsafePointer<nettle_hash>) in return header })
+            minimumCapacity: ctxt_size,
+            makingHeaderWith: { (_) -> (UnsafePointer<nettle_hash>) in return header })
         clone.withUnsafeMutablePointerToElements {
             (newstate) -> Void in
             self.withUnsafeMutablePointerToElements {
@@ -225,7 +228,7 @@ public class Hash : ManagedBuffer<UnsafePointer<nettle_hash>, UInt8> & HashProto
     ///
     /// - Parameters:
     ///   - hashName: The name of the hash, e.g. `sha256` or `sha512-224`
-    public class func named(_ hashName: String) -> Hash? {
+    public class func named(_ hashName: String) -> Self? {
         guard let vtbl: UnsafePointer<nettle_hash> = (hashName.withCString(encodedAs: Unicode.ASCII.self) {
             (buf: UnsafePointer<Unicode.ASCII.CodeUnit>) -> UnsafePointer<nettle_hash>? in
             CNettle.nettle_lookup_hash(UnsafePointer<CChar>(OpaquePointer(buf)))
@@ -233,7 +236,7 @@ public class Hash : ManagedBuffer<UnsafePointer<nettle_hash>, UInt8> & HashProto
             return nil
         }
 
-        return Hash.create(vtbl)
+        return unsafeDowncast(self.create(vtbl), to: self)
     }
 
     private static func getHashNames() -> Array<String> {
