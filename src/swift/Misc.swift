@@ -139,7 +139,7 @@ internal func withMpz<T, B: ContiguousBytes>(_ buf: B, _ cb: (mpz_srcptr) -> T) 
 
 internal func withMpzBuffer(_ cb: (mpz_ptr) -> Bool) -> ContiguousArray<UInt8>? {
     var m = mpz_t()
-    nettle_swift_mpz_init_prealloc(&m, 0)
+    nettle_swift_mpz_init(&m)
     defer {
         nettle_swift_mpz_clear(&m)
     }

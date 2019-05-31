@@ -65,12 +65,11 @@ public func rawDiffieHellmanAgreement(_ pub: ECCPrimePublicKey, _ priv: ECCPrime
     }
 
     var result_x = mpz_t()
-    nettle_swift_mpz_init_prealloc(&result_x, bit_size)
+    nettle_swift_mpz_init(&result_x)
     nettle_ecc_point_get(&result_point, &result_x, nil)
-
+    nettle_ecc_point_clear(&result_point)
     let result_bytes = i2os(&result_x, width: Int((bit_size + 7) / 8))
     nettle_swift_mpz_clear(&result_x)
-    nettle_ecc_point_clear(&result_point)
 
     return result_bytes
 }
@@ -179,8 +178,8 @@ public final class ECCPrimePublicKey {
         var x_buf = mpz_t()
         var y_buf = mpz_t()
         let bit_size = self.curve_size
-        nettle_swift_mpz_init_prealloc(&x_buf, bit_size)
-        nettle_swift_mpz_init_prealloc(&y_buf, bit_size)
+        nettle_swift_mpz_init(&x_buf)
+        nettle_swift_mpz_init(&y_buf)
         withUnsafePointer(to: self.point) {
             nettle_ecc_point_get($0, &x_buf, &y_buf)
         }
@@ -306,7 +305,7 @@ public final class ECCPrimePrivateKey {
         let bits = curve_size
         let octets = Int((bits + 7) / 8)
         var integer = mpz_t()
-        nettle_swift_mpz_init_prealloc(&integer, bits)
+        nettle_swift_mpz_init(&integer)
         withUnsafePointer(to: scalar) {
             nettle_ecc_scalar_get($0, &integer)
         }

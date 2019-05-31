@@ -6,17 +6,19 @@
  * code.
  */
 
-static inline void nettle_swift_mpz_clear(mpz_ptr v) {
+static inline void nettle_swift_mpz_init(mpz_ptr v)
+{
+  mpz_init(v);
+}
+
+static inline void nettle_swift_mpz_clear(mpz_ptr v)
+{
   mpz_clear(v);
 }
 
-static inline void nettle_swift_mpz_set_ui(mpz_ptr v, unsigned long va) {
-  mpz_set_ui(v, va);
-}
-
-static inline void nettle_swift_mpz_init_prealloc(mpz_ptr v, unsigned int bits_prealloc)
+static inline void nettle_swift_mpz_set_ui(mpz_ptr v, unsigned long va)
 {
-  mpz_init2(v, bits_prealloc + GMP_NUMB_BITS);
+  mpz_set_ui(v, va);
 }
 
 static inline int nettle_swift_mpz_odd_p(mpz_srcptr v)
