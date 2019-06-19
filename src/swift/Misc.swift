@@ -150,6 +150,32 @@ internal func withMpzBuffer(_ cb: (mpz_ptr) -> Bool) -> ContiguousArray<UInt8>? 
     }
 }
 
+/// Compares two buffers in constant time.
+///
+/// The time taken is proportional to their lengths but does not depend on
+/// their contents, unlike normal byte comparison functions.
+///
+/// The two buffers should be of the same length; if they aren't, this
+/// routine will still return False, but the discrepancy may be visible
+/// via side channels.
+@inline(__always)
+public func constantTimeEqual<A: ContiguousBytes, B: ContiguousBytes>(a: A, b: B) -> Bool {
+    return a.withUnsafeBytes {
+        (aBuf) -> Bool in
+        return b.withUnsafeBytes {
+            (bBuf) -> Bool in
+            let aLen = aBuf.count
+            let bLen = bBuf.count
+            let s = nettle_memeql_sec(aBuf.baseAddress, bBuf.baseAddress, min(aLen, bLen))
+            if aLen == bLen {
+                return s != 0
+            } else {
+                return false
+            }
+        }
+    }
+}
+
 #if canImport(Glibc)
 
 import Glibc

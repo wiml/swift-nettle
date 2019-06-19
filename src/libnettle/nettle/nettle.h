@@ -19,6 +19,7 @@
 #include <nettle/gosthash94.h>
 #include <nettle/hkdf.h>
 #include <nettle/hmac.h>
+#include <nettle/memops.h>
 #include <nettle/memxor.h>
 #include <nettle/nettle-meta.h>
 #include <nettle/nettle-types.h>
