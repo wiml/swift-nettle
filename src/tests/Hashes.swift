@@ -6,7 +6,7 @@ public class HashTests : XCTestCase {
 
     func testSha1() {
         var hc = SHA1()
-        var chc = Hash.named(hc.name)!
+        let chc = Hash.named(hc.name)!
 
         let d = Data([8, 6, 7, 5, 3, 0, 9])
         hc.update(d)
@@ -26,7 +26,7 @@ public class HashTests : XCTestCase {
 
     func testSha256() {
         var hc = SHA256()
-        var chc = Hash.named(hc.name)!
+        let chc = Hash.named(hc.name)!
 
         let d = Data([8, 6, 7, 5, 3, 0, 9])
         hc.update(d)
@@ -46,7 +46,7 @@ public class HashTests : XCTestCase {
 
     func testSha384() {
         var hc = SHA384()
-        var chc = Hash.named(hc.name)!
+        let chc = Hash.named(hc.name)!
 
         let d = Data([8, 6, 7, 5, 3, 0, 9])
         hc.update(d)
@@ -91,15 +91,15 @@ public class HashTests : XCTestCase {
     /// Test that reference-type hash contexts behave as references, and that
     /// they reset to their initial state after digest()
     func testRefClone() {
-        var hc = Hash.named("sha256")!
+        let hc = Hash.named("sha256")!
 
         hc.update([8, 6, 7])
 
         let _ = hc.digest()
 
         hc.update([5, 3, 0, 9])
-        var hc_alias = hc
-        var hc_cl = hc.clone()
+        let hc_alias = hc
+        let hc_cl = hc.clone()
         hc.update(Data([6]))
         hc_alias.update(Data([5, 0, 0, 0]))
         [9, 8, 7].withUnsafeBufferPointer {
@@ -120,27 +120,95 @@ public class HashTests : XCTestCase {
 
     /// Test looking up hash functions by name
     func testByName() {
-        XCTAssertTrue(Hash.names.count > 4)
-        XCTAssertTrue(Hash.names.contains("sha256"))
+        XCTAssertTrue(Hash.Algorithm.all.count > 4)
+        XCTAssertTrue(Hash.Algorithm.all.contains { $0.name == "sha256" })
 
-        var h1 = Hash.named("sha256")
+        let h1 = Hash.Algorithm.named("sha256")
         XCTAssertEqual(h1?.name, "sha256")
         XCTAssertEqual(h1?.block_size, 64)
-        var h2 = Hash.named("sha3_256")
+        let h2 = Hash.Algorithm.named("sha3_256")
         XCTAssertEqual(h2?.name, "sha3_256")
         XCTAssertEqual(h2?.block_size, 136) // r=1088 bits
-        let h3 = Hash.named("grumblekins")
+        let h3 = Hash.Algorithm.named("grumblekins")
         XCTAssertNil(h3)
 
-        h1?.update([ 0x61 ])
-        h2?.update([ 0x61 ])
+        let h1c = h1!.new()
+        h1c.update([ 0x61 ])
+        let h2c = h2!.new()
+        h2c.update([ 0x61 ])
 
-        XCTAssertEqual(h1!.digest(),
+        XCTAssertEqual(h1c.digest(),
                        [0xca, 0x97, 0x81, 0x12, 0xca, 0x1b, 0xbd, 0xca, 0xfa, 0xc2, 0x31, 0xb3, 0x9a, 0x23, 0xdc, 0x4d, 0xa7, 0x86, 0xef, 0xf8, 0x14, 0x7c, 0x4e, 0x72, 0xb9, 0x80, 0x77, 0x85, 0xaf, 0xee, 0x48, 0xbb])
-        XCTAssertEqual(h2!.digest(),
+        XCTAssertEqual(h2c.digest(),
                        [0x80, 0x08, 0x4b, 0xf2, 0xfb, 0xa0, 0x24, 0x75, 0x72, 0x6f, 0xeb, 0x2c, 0xab, 0x2d, 0x82, 0x15, 0xea, 0xb1, 0x4b, 0xc6, 0xbd, 0xd8, 0xbf, 0xb2, 0xc8, 0x15, 0x12, 0x57, 0x03, 0x2e, 0xcd, 0x8b])
     }
 
+    func testHMAC() {
+        // The test vectors from RFC2104
+
+        guard let h1 = Hash.Algorithm.named("md5") else {
+            XCTFail()
+            return
+        }
+        let key1: [UInt8] =  [ 11, 11, 11, 11, 11, 11, 11, 11,
+                               11, 11, 11, 11, 11, 11, 11, 11 ]
+        var ctxt = key1.withUnsafeBytes {
+            HMAC(algorithm: h1, key: $0.bindMemory(to: UInt8.self))
+        }
+        ctxt.update("Hi There".data(using: .ascii)!)
+        let dgst1 = ctxt.digest()
+
+        XCTAssertEqual(dgst1,
+                       [0x92, 0x94, 0x72, 0x7a, 0x36, 0x38, 0xbb, 0x1c,
+                        0x13, 0xf4, 0x8e, 0xf8, 0x15, 0x8b, 0xfc, 0x9d])
+        XCTAssertEqual(ctxt.digest_size, 16)
+        XCTAssertEqual(ctxt.name, "hmac-md5")
+
+
+        let key2: [UInt8] = [ 0x4A, 0x65, 0x66, 0x65 ]
+        ctxt = key2.withUnsafeBytes {
+            HMAC(algorithm: h1, key: $0.bindMemory(to: UInt8.self))
+        }
+        let key2h = ctxt.key
+        ctxt.update("what do ya want for nothing?".data(using: .ascii)!)
+        let ctxt2 = key2h.new()
+        ctxt2.update("that ain't working, ".data(using: .ascii)!)
+        let dgst2 = ctxt.digest()
+        ctxt2.update("that's the way you do it".data(using: .ascii)!)
+        let dgst2a = ctxt2.digest()
+
+        XCTAssertEqual(key2h.digest_size, 16)
+        XCTAssertEqual(key2h.name, "hmac-md5")
+        XCTAssertEqual(dgst2,
+                       [ 0x75, 0x0c, 0x78, 0x3e, 0x6a, 0xb0, 0xb5, 0x03,
+                         0xea, 0xa8, 0x6e, 0x31, 0x0a, 0x5d, 0xb7, 0x38 ])
+
+        // Homegrown test vector, not from RFC
+        XCTAssertEqual(dgst2a,
+                       [ 0xd6, 0x54, 0x5c, 0x9e, 0xbf, 0xc5, 0xfc, 0xd1,
+                         0x55, 0xd9, 0x12, 0x39, 0x83, 0x09, 0x5d, 0x3e ])
+
+        guard let h2 = Hash.Algorithm.named("sha384") else {
+            XCTFail()
+            return
+        }
+
+        // Test vector from RFC4231
+        let key3: [UInt8] = Array(repeating: 0xAA, count:131)
+        let key3h = key3.withUnsafeBytes {
+            HMAC(algorithm: h2, key: $0.bindMemory(to: UInt8.self)).key
+        }
+        let msg3 = "This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.".data(using: .ascii)!
+
+        let dgst3 = key3h.digest(of: msg3)
+        XCTAssertEqual(dgst3,
+                       [ 0x66, 0x17, 0x17, 0x8e, 0x94, 0x1f, 0x02, 0x0d,
+                         0x35, 0x1e, 0x2f, 0x25, 0x4e, 0x8f, 0xd3, 0x2c,
+                         0x60, 0x24, 0x20, 0xfe, 0xb0, 0xb8, 0xfb, 0x9a,
+                         0xdc, 0xce, 0xbb, 0x82, 0x46, 0x1e, 0x99, 0xc5,
+                         0xa6, 0x78, 0xcc, 0x31, 0xe7, 0x99, 0x17, 0x6d,
+                         0x38, 0x60, 0xe6, 0x11, 0x0c, 0x46, 0x52, 0x3e ])
+    }
 
     /// Not even a stub dynamic runtime on Linux, so we have to manually list the test cases
     static public let allTests = [
@@ -150,5 +218,6 @@ public class HashTests : XCTestCase {
         ("testValClone", testValClone),
         ("testRefClone", testRefClone),
         ("testByName", testByName),
+        ("testHMAC", testHMAC),
     ]
 }

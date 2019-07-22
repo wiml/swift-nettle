@@ -72,7 +72,7 @@ public class RSATests : XCTestCase {
         var msg = ContiguousArray<UInt8>(repeating: 0xFF, count: 128)
         msg.withUnsafeMutableBufferPointer { getRandomData($0, from: nil) }
 
-        let sigtypes : [(RSAPublicKey.SignatureAlgorithm, () -> HashProtocol)] = [
+        let sigtypes : [(RSAPublicKey.SignatureAlgorithm, () -> HashContext)] = [
             ( .pkcs1v15(.sha1), SHA1.init ),
             ( .pkcs1v15(.sha256), SHA256.init ),
             ( .pkcs1v15(.sha512), SHA512.init ),
@@ -113,7 +113,7 @@ public class RSATests : XCTestCase {
         hc_sha256.update(test_msg)
         XCTAssertTrue(key2.verify_pkcs1(rsa2_signature_pkcs1_sha256, digest: &hc_sha256))
 
-        var hc_sha256_ = Hash.named("sha256")!
+        let hc_sha256_ = Hash.named("sha256")!
         hc_sha256_.update(test_msg)
         let sha256_digest = hc_sha256_.digest()
         XCTAssertTrue(key2.verify(.pkcs1v15(.sha256),
@@ -133,7 +133,7 @@ public class RSATests : XCTestCase {
         let test_msg = rsa2_test_msg.data(using: .ascii)!
         let key = RSAPublicKey(PKCS1: rsa2_pub_pkcs1)!
 
-        var hc = Hash.named("sha512")!
+        let hc = Hash.named("sha512")!
         hc.update(test_msg)
         let digest_sha512 = hc.digest()
 
