@@ -156,6 +156,7 @@ public final class ECCPrimePublicKey {
     }
 
     /// Verify an ECDSA signature.
+    ///
     /// Returns `true` if the signature matches the digest, `false` otherwise.
     public func verify(digest: ContiguousArray<UInt8>, _ signature: DSASignature) -> Bool {
         return withUnsafePointer(to: self.point) {
@@ -224,16 +225,27 @@ public final class ECCPrimePublicKey {
 
 /// An elliptic curve private key.
 /// This consists of a curve identifier and a secret scalar (integer) value.
+///
+/// Unlike RSA keys, ECC private keys do not contain a reference
+/// to their public counterpart, but the public key can be
+/// computed on demand.
 public final class ECCPrimePrivateKey {
     fileprivate let scalar: ecc_scalar
+
+    /// The entropy source used for secret operations.
+    ///
+    /// If this is nil, the Nettle library will use the system's
+    /// builtin strong randomness source.
     public var entropy_source: getentropy_func? = nil
 
+    /// The size, in bits, of this key's curve
     public var curve_size : CUnsignedInt {
         get {
             return nettle_ecc_bit_size(scalar.ecc)
         }
     }
 
+    /// The elliptic curve on which this key operates
     public var curve : ECCPrimeCurve {
         get {
             return ECCPrimeCurve.from(nettle_vtable: scalar.ecc)!
@@ -251,8 +263,12 @@ public final class ECCPrimePrivateKey {
 
     /// Create a private key from the representation of its secret scalar.
     ///
-    /// The scalar should be in unsigned, big-endian, base-256 format, without any
-    /// header.
+    /// The scalar should be in unsigned, big-endian, base-256 format,
+    /// without any header.
+    ///
+    /// - Parameters:
+    ///   - curve: The elliptic curve parameters
+    ///   - scalar: The secret scalar value
     public convenience init?(curve: ECCPrimeCurve, scalar: UnsafeBufferPointer<UInt8>) {
         var z = mpz_t()
         nettle_mpz_init_set_str_256_u(&z, scalar.count, scalar.baseAddress)
@@ -286,6 +302,7 @@ public final class ECCPrimePrivateKey {
     }
 
     /// Compute the public key corresponding to this secret key.
+    ///
     /// This involves an EC multiplication; if the public key is
     /// needed often, it's a good idea to compute it once and cache it.
     public func compute_public_key() -> ECCPrimePublicKey {
@@ -298,6 +315,7 @@ public final class ECCPrimePrivateKey {
     }
 
     /// Returns this private key as an octet-string.
+    ///
     /// The result corresponds to the field element converted to an octet
     /// string as described in SEC.1 section 2.3.5.
     /// The result is always a fixed length for a given curve.
@@ -319,8 +337,10 @@ public final class ECCPrimePrivateKey {
     }
 
     /// Produce an ECDSA signature of a value.
-    /// Typically, the `digest` value will be the result of a hash function, whose size
-    /// is approximately the same as this key's curve's group order.
+    ///
+    /// Typically, the `digest` value will be the result of a hash
+    /// function, whose size is approximately the same as this key's
+    /// curve's group order.
     public func sign(digest: ContiguousArray<UInt8>, entropy: getentropy_func? = nil) -> DSASignature {
         return digest.withUnsafeBufferPointer {
             (buf) -> DSASignature in

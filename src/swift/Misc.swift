@@ -106,6 +106,10 @@ internal func withEntropyCallback<T>(_ entropy_source: getentropy_func?,
     }
 }
 
+/// Fill a buffer with random data
+///
+/// This uses the supplied entropy callback, or the default entropy source
+/// if none is supplied.
 public func getRandomData(_ buf: UnsafeMutableBufferPointer<UInt8>, from entropy_source: getentropy_func?) {
     if let csrng = entropy_source {
         csrng(buf)

@@ -45,12 +45,14 @@ internal func derPutLength(_ buf: inout ContiguousArray<UInt8>, _ pos: Int, _ sz
     }
 }
 
+/// Returns the total number of bytes needed to represent the
+/// argument as a DER INTEGER object (including tag and length).
 internal func derIntegerLength(_ n: mpz_srcptr) -> Int {
     let content_size = nettle_mpz_sizeinbase_256_s(n)
     return 1 + derLengthLength(forContentLength: content_size) + content_size
 }
 
-
+/// Appends the integer argument to the buffer
 internal func derPutInteger(_ buf: inout ContiguousArray<UInt8>, _ pos: Int, _ n: mpz_srcptr) -> Int {
     buf[pos] = 0x02 /* INTEGER */
 
