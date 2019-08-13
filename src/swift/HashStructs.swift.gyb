@@ -1,0 +1,60 @@
+import CNettle
+
+%{
+
+    algs = [
+      ('SHA1',   'SHA-1',   'sha1'),
+      ('SHA256', 'SHA-256', 'sha256'),
+      ('SHA224', 'SHA-224 (or SHA-256/224)', 'sha224'),
+      ('SHA384', 'SHA-384 (or SHA-512/384)', 'sha384'),
+      ('SHA512', 'SHA-512', 'sha512'),
+    ]
+
+    obsolete = ( 'md5', 'sha1', )
+
+    ctxt_struct = {
+        'sha224': 'sha256',
+        'sha384': 'sha512',
+    }
+    
+}%
+
+%for (clsname, descr, nettlename) in algs:
+%NETTLENAME = nettlename.upper()
+%alias = ctxt_struct.get(nettlename, nettlename)
+
+
+
+/// The ${descr} hash function.
+%if nettlename in obsolete:       
+///
+/// Note that for most purposes this hash function is obsolete.
+/// It should only be used if compatibility with existing systems
+/// is a requirement.
+%end
+public struct ${clsname} : HashContext {
+    
+    @usableFromInline
+    internal var ctxt: ${alias}_ctx
+
+    public let digest_size = Int(${NETTLENAME}_DIGEST_SIZE)
+    public let block_size = Int(${NETTLENAME}_BLOCK_SIZE)
+    public let name = "${nettlename}" // Matches libnettle
+
+    public init() {
+        ctxt = ${alias}_ctx() // dummy assignment to appease Swift compiler
+        nettle_${nettlename}_init(&ctxt)
+    }
+
+    @inlinable
+    public mutating func update(bytes buf: UnsafeBufferPointer<UInt8>) {
+        nettle_${alias}_update(&ctxt, buf.count, buf.baseAddress)
+    }
+
+    @inlinable
+    public mutating func digest(into buf: UnsafeMutableBufferPointer<UInt8>) {
+        nettle_${nettlename}_digest(&ctxt, buf.count, buf.baseAddress)
+    }
+}
+%end
+
