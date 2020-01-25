@@ -175,7 +175,7 @@ public class Hash : ManagedBuffer<UnsafePointer<nettle_hash>, UInt64> & HashCont
     public struct Algorithm : HashAlgorithm, Equatable {
         public typealias Context = Hash
 
-        fileprivate let vtable: UnsafePointer<nettle_hash>
+        internal let vtable: UnsafePointer<nettle_hash>
 
         public func new() -> Hash {
             let instance = Hash.create(vtable: vtable, count: 1)

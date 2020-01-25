@@ -58,3 +58,16 @@ public struct ${clsname} : HashContext {
 }
 %end
 
+
+public extension Hash.Algorithm {
+
+%for (clsname, descr, nettlename) in algs:
+    static var ${nettlename} : Hash.Algorithm {
+        get {
+            return withUnsafePointer(to: nettle_${nettlename}) { Hash.Algorithm(vtable: $0) }
+	}
+    }
+%end
+
+}
+

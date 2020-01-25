@@ -112,6 +112,17 @@ public class RSAPublicKey {
                 case .sha512: return Int(SHA512_DIGEST_SIZE)
                 }
             }
+
+            public var digestAlgorithm: Hash.Algorithm {
+                get {
+                    switch self {
+                    case .sha1: return Hash.Algorithm.sha1
+                    case .sha256: return Hash.Algorithm.sha256
+                    case .sha512: return Hash.Algorithm.sha512
+                    }
+                }
+            }
+
         }
         public enum PSSHash {
             case sha256
@@ -123,6 +134,16 @@ public class RSAPublicKey {
                 case .sha256: return Int(SHA256_DIGEST_SIZE)
                 case .sha384: return Int(SHA384_DIGEST_SIZE)
                 case .sha512: return Int(SHA512_DIGEST_SIZE)
+                }
+            }
+
+            public var digestAlgorithm: Hash.Algorithm {
+                get {
+                    switch self {
+                    case .sha256: return Hash.Algorithm.sha256
+                    case .sha384: return Hash.Algorithm.sha384
+                    case .sha512: return Hash.Algorithm.sha512
+                    }
                 }
             }
         }
@@ -138,6 +159,15 @@ public class RSAPublicKey {
                 switch self {
                 case .pkcs1v15(let h): return h.digestSize
                 case .pss(let h, _): return h.digestSize
+                }
+            }
+        }
+
+        public var digestAlgorithm: some HashAlgorithm {
+            get {
+                switch self {
+                case .pkcs1v15(let h): return h.digestAlgorithm
+                case .pss(let h, _): return h.digestAlgorithm
                 }
             }
         }
