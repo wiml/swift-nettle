@@ -11,5 +11,5 @@
 #include <nettle/curve25519.h>
 #include <nettle/eddsa.h>
 
-#include "nettle-swift-helpers.h"
+#include "hogweed-swift-helpers.h"
 

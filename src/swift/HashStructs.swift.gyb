@@ -16,7 +16,7 @@ import CNettle
         'sha224': 'sha256',
         'sha384': 'sha512',
     }
-    
+
 }%
 
 %for (clsname, descr, nettlename) in algs:
@@ -64,8 +64,8 @@ public extension Hash.Algorithm {
 %for (clsname, descr, nettlename) in algs:
     static var ${nettlename} : Hash.Algorithm {
         get {
-            return withUnsafePointer(to: nettle_${nettlename}) { Hash.Algorithm(vtable: $0) }
-	}
+            return Hash.Algorithm(vtable: nettle_swift_${nettlename}_ptr())
+        }
     }
 %end
 

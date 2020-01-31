@@ -37,3 +37,4 @@
 #include <nettle/version.h>
 #include <nettle/yarrow.h>
 
+#include "nettle-swift-helpers.h"
